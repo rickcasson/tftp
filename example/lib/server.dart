@@ -42,7 +42,7 @@ class _ServerDemoState extends State<ServerDemo> {
               return snapshot.hasData ? Text(snapshot.data) : Container();
             },
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: () async {
               Directory appDocDir = await getApplicationDocumentsDirectory();
               String appDocPath = appDocDir.path;
@@ -67,7 +67,7 @@ class _ServerDemoState extends State<ServerDemo> {
             },
             child: Text("Start"),
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: () {
               if (null != this.server) {
                 this.server.close();
@@ -83,7 +83,8 @@ class _ServerDemoState extends State<ServerDemo> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text("Process:${(snapshot.data * 100).toStringAsFixed(2)}%"),
+                        Text(
+                            "Process:${(snapshot.data * 100).toStringAsFixed(2)}%"),
                         LinearProgressIndicator(
                           value: snapshot.data,
                         ),

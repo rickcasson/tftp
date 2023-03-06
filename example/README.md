@@ -47,7 +47,7 @@ class _ServerDemoState extends State<ServerDemo> {
               return snapshot.hasData ? Text(snapshot.data) : Container();
             },
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: () async {
               Directory appDocDir = await getApplicationDocumentsDirectory();
               String appDocPath = appDocDir.path;
@@ -72,7 +72,7 @@ class _ServerDemoState extends State<ServerDemo> {
             },
             child: Text("Start"),
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: () {
               if (null != this.server) {
                 this.server.close();
@@ -150,7 +150,7 @@ class _ClientDemoState extends State<ClientDemo> {
           ),
           Row(
             children: <Widget>[
-              RaisedButton(
+              ElevatedButton(
                 child: Text("Get"),
                 onPressed: () async {
                   var client = await TFtpClient.bind(
@@ -162,7 +162,7 @@ class _ClientDemoState extends State<ClientDemo> {
                       host.text, int.parse(port.text));
                 },
               ),
-              RaisedButton(
+              ElevatedButton(
                 child: Text("Put"),
                 onPressed: () async {
                   var client = await TFtpClient.bind(

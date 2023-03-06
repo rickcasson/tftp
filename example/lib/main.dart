@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'TFtp Demo'),
+      home: MyHomePage(title: 'TFTP Demo'),
     );
   }
 }

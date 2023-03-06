@@ -11,14 +11,14 @@ class TFtpClient {
   late RawDatagramSocket _socket;
   late Stream<RawSocketEvent> _stream;
 
-  List<int> _receivedBlock = List.empty();
+  List<int> _receivedBlock = <int>[];
 
   TFtpClient(this.host, this.port, {this.blockSize = 512});
 
   static Future<TFtpClient> bind(String host, int port, {int blockSize = 512}) {
     Completer<TFtpClient> completer = Completer();
     RawDatagramSocket.bind(host, port).then((socket) {
-      var client = new TFtpClient(host, port, blockSize: blockSize);
+      var client = TFtpClient(host, port, blockSize: blockSize);
       client._socket = socket;
       client._stream = socket.asBroadcastStream();
       completer.complete(client);
@@ -36,32 +36,31 @@ class TFtpClient {
       TransType.octet,
       [0],
     ].expand((x) => x).toList();
-    var _blockNum = 0;
-    var _rp =
-        await _sendPacket(sendPacket, _blockNum, remoteAddress, remotePort);
+    var blockNum = 0;
+    var rp = await _sendPacket(sendPacket, blockNum, remoteAddress, remotePort);
 
-    RandomAccessFile _fileWait2Write = await File(localFile).open();
-    var totalSize = _fileWait2Write.lengthSync();
+    RandomAccessFile fileWait2Write = await File(localFile).open();
+    var totalSize = fileWait2Write.lengthSync();
     List<int> dataBlock;
-    while ((dataBlock = await _fileWait2Write.read(blockSize)).length > 0) {
-      ++_blockNum;
-      _blockNum = _blockNum > 65535 ? 0 : _blockNum;
+    while ((dataBlock = await fileWait2Write.read(blockSize)).isNotEmpty) {
+      ++blockNum;
+      blockNum = blockNum > 65535 ? 0 : blockNum;
 
       List<int> sendPacket = [
         [0, OpCode.DATA_VALUE],
-        [_blockNum >> 8, _blockNum & 0xff],
+        [blockNum >> 8, blockNum & 0xff],
         dataBlock
       ].expand((x) => x).toList();
 
-      await _sendPacket(sendPacket, _blockNum, remoteAddress, _rp);
-      if (_blockNum * blockSize == totalSize) {
-        ++_blockNum;
-        _blockNum = _blockNum > 65535 ? 0 : _blockNum;
+      await _sendPacket(sendPacket, blockNum, remoteAddress, rp);
+      if (blockNum * blockSize == totalSize) {
+        ++blockNum;
+        blockNum = blockNum > 65535 ? 0 : blockNum;
         List<int> sendPacket = [
           [0, OpCode.DATA_VALUE],
-          [_blockNum >> 8, _blockNum & 0xff],
+          [blockNum >> 8, blockNum & 0xff],
         ].expand((x) => x).toList();
-        await _sendPacket(sendPacket, _blockNum, remoteAddress, remotePort);
+        await _sendPacket(sendPacket, blockNum, remoteAddress, remotePort);
       }
     }
   }
@@ -95,7 +94,7 @@ class TFtpClient {
           }
 
           List<int> d = data.data.sublist(4);
-          if (d.length > 0) {
+          if (d.isNotEmpty) {
             io.add(d);
           }
           List<int> sendPacket = [
@@ -107,7 +106,7 @@ class TFtpClient {
           if (d.length < blockSize) {
             io.close();
             subscription.cancel();
-            completer.complete();
+            completer.complete(0);
           }
         }
         _checkError(data.data);
@@ -121,7 +120,7 @@ class TFtpClient {
       TransType.octet,
       [0],
     ].expand((x) => x).toList();
-    _receivedBlock = List.empty();
+    _receivedBlock = <int>[];
     _socket.send(sendPacket, InternetAddress(remoteAddress), remotePort);
 
     return completer.future;
@@ -167,7 +166,7 @@ class TFtpClient {
         msgData.add(data[i]);
       }
       var msg = String.fromCharCodes(msgData);
-      throw new TFtpException(code, msg);
+      throw TFtpException(code, msg);
     }
   }
 

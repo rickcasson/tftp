@@ -1,7 +1,7 @@
 name: tftp
-description: A lib for Trivial File Transfer Protocol(TFtp) server and client.
-version: 1.1.0
-author: FourLeaf <gundamwing.wei@gmail.com>
+description: A lib for Trivial File Transfer Protocol(TFTP) server and client.
+version: 1.2.0
+#author: FourLeaf <gundamwing.wei@gmail.com>
 homepage: https://github.com/FourLeafTec/tftp
 
 environment:
@@ -14,7 +14,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^2.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec

@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:tftp/tftp.dart';
 
 typedef ReadFileCallBack = String Function(String file,
@@ -21,7 +22,7 @@ class TFtpServer extends Stream<TFtpServerSocket> {
   }
 
   static Future<TFtpServer> bind(address, {int port = 69}) async {
-    return new Future(() => TFtpServer(address, port: port));
+    return Future(() => TFtpServer(address, port: port));
   }
 
   late final HashMap<String, TFtpServerSocket> _socketDic = HashMap();
@@ -51,7 +52,7 @@ class TFtpServer extends Stream<TFtpServerSocket> {
     close();
   }
 
-  Future close({bool force: false}) {
+  Future close({bool force = false}) {
     return _controller.close();
   }
 
@@ -82,13 +83,15 @@ class TFtpServerSocket {
   late File? _writeFile;
   late IOSink? _writeSink;
   late StreamController<List<int>>? _writeStreamCtrl;
-  late List<int>? _receivedBlock = List.empty();
+  late List<int>? _receivedBlock = <int>[];
 
   void read(List<int> data) {
     switch (data[0] << 8 | data[1]) {
       case OpCode.RRQ_VALUE:
         var info = _readFileNameAndTransType(data);
-        print("read server file:${info.fileName} with ${info.transType}");
+        if (kDebugMode) {
+          print("read server file:${info.fileName} with ${info.transType}");
+        }
         ProgressCallback? onReceive;
         if (null != onRead) {
           info.fileName = onRead!(info.fileName, ({progressCallback}) {
@@ -104,7 +107,9 @@ class TFtpServerSocket {
         return;
       case OpCode.WRQ_VALUE:
         var info = _readFileNameAndTransType(data);
-        print("write server file:${info.fileName} with ${info.transType}");
+        if (kDebugMode) {
+          print("write server file:${info.fileName} with ${info.transType}");
+        }
 
         if (null != _writeStreamCtrl) {
           _writeStreamCtrl?.close().then((_) {
@@ -118,11 +123,11 @@ class TFtpServerSocket {
           _writeFile?.deleteSync();
         }
 
-        bool _overwrite = true;
+        bool fileOverwrite = true;
         if (null != onWrite) {
           info.fileName =
               onWrite!(info.fileName, ({overwrite = true, transformer}) {
-            _overwrite = overwrite;
+            fileOverwrite = overwrite;
             if (null != transformer) {
               _writeStreamCtrl?.stream.transform(transformer);
             }
@@ -130,7 +135,7 @@ class TFtpServerSocket {
         }
         _writeFile = File(info.fileName);
 
-        if (!_overwrite && _writeFile!.existsSync()) {
+        if (!fileOverwrite && _writeFile!.existsSync()) {
           throwError(Error.FILE_ALREADY_EXISTS);
           return;
         }
@@ -144,7 +149,7 @@ class TFtpServerSocket {
         _writeSink = _writeFile?.openWrite();
         _writeSink?.addStream(_writeStreamCtrl!.stream);
 
-        _receivedBlock = List.empty();
+        _receivedBlock = <int>[];
         List<int> sendPacket = [
           [0, OpCode.ACK_VALUE],
           [0x00, 0x00],
@@ -228,15 +233,15 @@ class TFtpServerSocket {
 
   /// 客户端读取文件时用于写入文件内容
   Future _write(File file, {ProgressCallback? onReceiveProgress}) async {
-    RandomAccessFile _fileWait2Write;
-    int _blockNum;
+    RandomAccessFile fileWait2Write;
+    int blockNum;
     Completer completer = Completer();
 
     RawDatagramSocket sendSocket = await RawDatagramSocket.bind(
         socket.address, Random().nextInt(10000) + 40000);
-    _fileWait2Write = await file.open();
-    var totalSize = _fileWait2Write.lengthSync();
-    _blockNum = 0;
+    fileWait2Write = await file.open();
+    var totalSize = fileWait2Write.lengthSync();
+    blockNum = 0;
 
     SendCompleter sendCompleter = SendCompleter();
     sendSocket.listen((ev) async {
@@ -244,34 +249,32 @@ class TFtpServerSocket {
         var data = sendSocket.receive();
         if (data!.data[0] << 8 | data.data[1] == OpCode.ACK_VALUE) {
           var ackValue = data.data[2] << 8 | data.data[3];
-          if (null != sendCompleter) {
-            sendCompleter.completer!.complete(ackValue);
-          }
+          sendCompleter.completer!.complete(ackValue);
         }
       }
     });
 
     Future.microtask(() async {
       List<int> dataBlock;
-      while ((dataBlock = await _fileWait2Write.read(blockSize)).length > 0) {
-        _blockNum++;
-        _blockNum = _blockNum > 65535 ? 0 : _blockNum;
+      while ((dataBlock = await fileWait2Write.read(blockSize)).isNotEmpty) {
+        blockNum++;
+        blockNum = blockNum > 65535 ? 0 : blockNum;
 
         List<int> sendPacket = [
           [0, OpCode.DATA_VALUE],
-          [_blockNum >> 8, _blockNum & 0xff],
+          [blockNum >> 8, blockNum & 0xff],
           dataBlock
         ].expand((x) => x).toList();
-        await _send(sendSocket, _blockNum, sendPacket, onReceiveProgress,
+        await _send(sendSocket, blockNum, sendPacket, onReceiveProgress,
             totalSize, sendCompleter);
-        if (_blockNum * blockSize == totalSize) {
-          _blockNum++;
-          _blockNum = _blockNum > 65535 ? 0 : _blockNum;
+        if (blockNum * blockSize == totalSize) {
+          blockNum++;
+          blockNum = blockNum > 65535 ? 0 : blockNum;
           List<int> sendPacket = [
             [0, OpCode.DATA_VALUE],
-            [_blockNum >> 8, _blockNum & 0xff],
+            [blockNum >> 8, blockNum & 0xff],
           ].expand((x) => x).toList();
-          await _send(sendSocket, _blockNum, sendPacket, onReceiveProgress,
+          await _send(sendSocket, blockNum, sendPacket, onReceiveProgress,
               totalSize, sendCompleter);
         }
       }
@@ -301,7 +304,7 @@ class TFtpServerSocket {
       }
       sendCompleter.completer = Completer();
       ack = await sendCompleter.completer!.future.timeout(
-        Duration(seconds: 1),
+        const Duration(seconds: 1),
       );
     } while (ack != blockNum && sendTime < 5);
   }

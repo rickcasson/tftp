@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:tftp/tftp.dart';
 
 void main() {
@@ -5,7 +6,9 @@ void main() {
     server.listen((socket) {
       socket.listen(onRead: (file, onProcess) {
         onProcess(progressCallback: (count, total) {
-          print("$count/$total");
+          if (kDebugMode) {
+            print("$count/$total");
+          }
         });
         return file;
       }, onWrite: (file, doTransform) {

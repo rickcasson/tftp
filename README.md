@@ -1,6 +1,6 @@
 # tftp plugin
 
-A lib for Trivial File Transfer Protocol(TFtp) server and client.
+A lib for Trivial File Transfer Protocol(TFTP) server and client.
 
 ## How To Use
 

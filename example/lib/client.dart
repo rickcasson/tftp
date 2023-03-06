@@ -41,7 +41,7 @@ class _ClientDemoState extends State<ClientDemo> {
           ),
           Row(
             children: <Widget>[
-              RaisedButton(
+              ElevatedButton(
                 child: Text("Get"),
                 onPressed: () async {
                   var client = await TFtpClient.bind(
@@ -53,7 +53,8 @@ class _ClientDemoState extends State<ClientDemo> {
                       host.text, int.parse(port.text));
                 },
               ),
-              RaisedButton(
+              const SizedBox(width: 10),
+              ElevatedButton(
                 child: Text("Put"),
                 onPressed: () async {
                   var client = await TFtpClient.bind(
